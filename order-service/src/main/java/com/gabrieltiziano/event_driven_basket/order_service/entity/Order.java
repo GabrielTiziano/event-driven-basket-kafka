@@ -24,7 +24,7 @@ public class Order {
 
     private String basketId;
 
-    private BigDecimal amount;
+    private BigDecimal itemsAmount;
 
     private BigDecimal shippingCost;
 
@@ -37,6 +37,6 @@ public class Order {
     private LocalDateTime updatedAt;
 
     public BigDecimal totalAmount() {
-        return amount.add(shippingCost);
+        return itemsAmount.add(shippingCost);
     }
 }

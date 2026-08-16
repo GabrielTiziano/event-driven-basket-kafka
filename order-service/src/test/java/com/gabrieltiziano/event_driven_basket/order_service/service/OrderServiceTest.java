@@ -6,6 +6,7 @@ import com.gabrieltiziano.event_driven_basket.order_service.entity.Order;
 import com.gabrieltiziano.event_driven_basket.order_service.entity.enums.OrderEvent;
 import com.gabrieltiziano.event_driven_basket.order_service.entity.enums.OrderStatus;
 import com.gabrieltiziano.event_driven_basket.order_service.entity.enums.PaymentMethod;
+import com.gabrieltiziano.event_driven_basket.order_service.message.NotificationMessage;
 import com.gabrieltiziano.event_driven_basket.order_service.repository.OrderRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,6 +40,12 @@ class OrderServiceTest {
 
     @Captor
     private ArgumentCaptor<Order> orderCaptor;
+
+    @Mock
+    private NotificationProducerService notificationProducerService;
+
+    @Captor
+    private ArgumentCaptor<NotificationMessage> notificationCaptor;
 
     @Test
     void shouldCreateOrderWithStatusCreated() {
@@ -150,6 +157,25 @@ class OrderServiceTest {
                 .isInstanceOf(IllegalStateException.class);
 
         verify(orderRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldPublishNotificationWhenOrderIsCreated() {
+        CreateOrderRequest request = new CreateOrderRequest(
+                "cli-1", "bsk-9", new BigDecimal("100.00"), new BigDecimal("10.00"));
+
+        when(orderRepository.save(any(Order.class))).thenAnswer(inv -> {
+            Order o = inv.getArgument(0);
+            o.setId("order-123");
+            return o;
+        });
+
+        orderService.createOrder(request);
+
+        verify(notificationProducerService).sendMessage(notificationCaptor.capture());
+        NotificationMessage sent = notificationCaptor.getValue();
+        assertThat(sent.orderId()).isEqualTo("order-123");
+        assertThat(sent.orderEvent()).isEqualTo(OrderEvent.CREATE);
     }
 
     private Order buildOrder(String id, OrderStatus status) {

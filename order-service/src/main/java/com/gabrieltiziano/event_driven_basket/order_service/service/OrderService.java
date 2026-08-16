@@ -7,6 +7,7 @@ import com.gabrieltiziano.event_driven_basket.order_service.entity.enums.OrderEv
 import com.gabrieltiziano.event_driven_basket.order_service.entity.enums.OrderStatus;
 import com.gabrieltiziano.event_driven_basket.order_service.entity.enums.PaymentMethod;
 import com.gabrieltiziano.event_driven_basket.order_service.mapper.OrderMapper;
+import com.gabrieltiziano.event_driven_basket.order_service.message.NotificationMessage;
 import com.gabrieltiziano.event_driven_basket.order_service.repository.OrderRepository;
 import org.springframework.stereotype.Service;
 
@@ -16,10 +17,12 @@ import java.time.LocalDateTime;
 public class OrderService {
     private final OrderRepository orderRepository;
     private final OrderStateService orderStateService;
+    private final NotificationProducerService notificationProducerService;
 
-    public OrderService(OrderRepository orderRepository, OrderStateService orderStateService) {
+    public OrderService(OrderRepository orderRepository, OrderStateService orderStateService, NotificationProducerService notificationProducerService) {
         this.orderRepository = orderRepository;
         this.orderStateService = orderStateService;
+        this.notificationProducerService = notificationProducerService;
     }
 
     public OrderResponse createOrder(CreateOrderRequest orderRequest) {
@@ -29,7 +32,10 @@ public class OrderService {
         newOrder.setCreatedAt(LocalDateTime.now());
         newOrder.setUpdatedAt(LocalDateTime.now());
 
-        return OrderMapper.toResponse(orderRepository.save(newOrder));
+        Order saved = orderRepository.save(newOrder);
+        notify(saved, OrderEvent.CREATE);
+
+        return OrderMapper.toResponse(saved);
     }
 
     public OrderResponse payOrder(String id, PaymentMethod paymentMethod) {
@@ -40,7 +46,10 @@ public class OrderService {
         order.setPaymentMethod(paymentMethod);
         order.setUpdatedAt(LocalDateTime.now());
 
-        return OrderMapper.toResponse(orderRepository.save(order));
+        Order saved = orderRepository.save(order);
+        notify(saved, OrderEvent.PAY);
+
+        return OrderMapper.toResponse(saved);
     }
 
     public OrderResponse shipOrder(String id) {
@@ -61,7 +70,10 @@ public class OrderService {
 
         order.setStatus(newStatus);
         order.setUpdatedAt(LocalDateTime.now());
-        return OrderMapper.toResponse(orderRepository.save(order));
+
+        Order saved = orderRepository.save(order);
+        notify(saved, orderEvent);
+        return OrderMapper.toResponse(saved);
     }
 
     //TODO: criar exception personalizada
@@ -69,4 +81,23 @@ public class OrderService {
         return orderRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Order not found with id: " + id));
     }
+
+    private void notify(Order order, OrderEvent event) {
+        NotificationMessage message = new NotificationMessage(
+                order.getId(),
+                messageFor(event),
+                event
+        );
+        notificationProducerService.sendMessage(message);
+    }
+    private String messageFor(OrderEvent event) {
+        return switch (event) {
+            case CREATE  -> "Pedido criado com sucesso";
+            case PAY     -> "Pagamento confirmado";
+            case SHIP    -> "Pedido enviado";
+            case DELIVER -> "Pedido entregue";
+            case CANCEL  -> "Pedido cancelado";
+        };
+    }
+
 }

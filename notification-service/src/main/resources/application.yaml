@@ -4,6 +4,11 @@ server:
 spring:
   application:
     name: notification-service
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8080/realms/basket
 
 kafka:
   url: localhost:9092

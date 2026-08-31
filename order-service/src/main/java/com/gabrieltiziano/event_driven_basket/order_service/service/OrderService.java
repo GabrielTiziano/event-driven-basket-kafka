@@ -9,11 +9,13 @@ import com.gabrieltiziano.event_driven_basket.order_service.entity.enums.Payment
 import com.gabrieltiziano.event_driven_basket.order_service.mapper.OrderMapper;
 import com.gabrieltiziano.event_driven_basket.order_service.message.NotificationMessage;
 import com.gabrieltiziano.event_driven_basket.order_service.repository.OrderRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 
 @Service
+@Slf4j
 public class OrderService {
     private final OrderRepository orderRepository;
     private final OrderStateService orderStateService;
@@ -33,6 +35,8 @@ public class OrderService {
         newOrder.setUpdatedAt(LocalDateTime.now());
 
         Order saved = orderRepository.save(newOrder);
+        log.info("Pedido criado | orderId={} status={}", saved.getId(), saved.getStatus());
+
         notify(saved, OrderEvent.CREATE);
 
         return OrderMapper.toResponse(saved);
@@ -40,6 +44,7 @@ public class OrderService {
 
     public OrderResponse payOrder(String id, PaymentMethod paymentMethod) {
         Order order = getOrder(id);
+        OrderStatus previousStatus = order.getStatus();
         OrderStatus newStatus = orderStateService.processEvent(order.getStatus(), OrderEvent.PAY);
 
         order.setStatus(newStatus);
@@ -47,6 +52,9 @@ public class OrderService {
         order.setUpdatedAt(LocalDateTime.now());
 
         Order saved = orderRepository.save(order);
+        log.info("Pedido atualizado | orderId={} de={} para={} evento=PAY",
+                saved.getId(), previousStatus, newStatus);
+
         notify(saved, OrderEvent.PAY);
 
         return OrderMapper.toResponse(saved);
@@ -66,12 +74,16 @@ public class OrderService {
 
     private OrderResponse transition(String id, OrderEvent orderEvent) {
         Order order = getOrder(id);
+        OrderStatus previousStatus = order.getStatus();
         OrderStatus newStatus = orderStateService.processEvent(order.getStatus(), orderEvent);
 
         order.setStatus(newStatus);
         order.setUpdatedAt(LocalDateTime.now());
 
         Order saved = orderRepository.save(order);
+        log.info("Pedido atualizado | orderId={} de={} para={} evento={}",
+                saved.getId(), previousStatus, newStatus, orderEvent);
+
         notify(saved, orderEvent);
         return OrderMapper.toResponse(saved);
     }

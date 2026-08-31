@@ -1,6 +1,7 @@
 package com.gabrieltiziano.event_driven_basket.notification_service.service;
 
 import com.gabrieltiziano.event_driven_basket.notification_service.message.NotificationMessage;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -11,6 +12,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mail.MailSendException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -29,6 +31,11 @@ class NotificationServiceTest {
     @Captor
     private ArgumentCaptor<SimpleMailMessage> emailCaptor;
 
+    @BeforeEach
+    void setUp() {
+        ReflectionTestUtils.setField(notificationService, "recipient", "teste@exemplo.com");
+    }
+
     private NotificationMessage buildMessage() {
         NotificationMessage message = new NotificationMessage();
         message.setOrderId("order-1");
@@ -43,6 +50,7 @@ class NotificationServiceTest {
 
         verify(mailSender).send(emailCaptor.capture());
         SimpleMailMessage sent = emailCaptor.getValue();
+        assertThat(sent.getTo()).containsExactly("teste@exemplo.com");
         assertThat(sent.getSubject()).contains("order-1");
         assertThat(sent.getText()).isEqualTo("Pedido criado com sucesso");
     }

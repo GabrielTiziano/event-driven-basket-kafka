@@ -23,3 +23,7 @@ kafka:
   url: localhost:9092
   topic: order-events
   group: notification-group
+
+notification:
+  mail:
+    to: seu-email@exemplo.com

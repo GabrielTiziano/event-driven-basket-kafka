@@ -40,5 +40,12 @@ services:
     volumes:
       - mongo-data:/data/db
 
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: basket-mailpit
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
 volumes:
   mongo-data:

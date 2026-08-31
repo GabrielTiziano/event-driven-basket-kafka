@@ -2,6 +2,7 @@ package com.gabrieltiziano.event_driven_basket.order_service.service;
 
 import com.gabrieltiziano.event_driven_basket.order_service.entity.enums.OrderEvent;
 import com.gabrieltiziano.event_driven_basket.order_service.entity.enums.OrderStatus;
+import com.gabrieltiziano.event_driven_basket.order_service.exception.InvalidOrderTransitionException;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.statemachine.StateMachine;
@@ -41,7 +42,7 @@ public class OrderStateService {
             return stateMachine.getState().getId();
         }
 
-        throw new IllegalStateException(
-                "Transição inválida: " + event + " a partir de " + currentStatus);
+        throw new InvalidOrderTransitionException(
+                "Não é possível aplicar o evento " + event + " a partir do estado " + currentStatus);
     }
 }

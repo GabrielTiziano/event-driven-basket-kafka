@@ -6,6 +6,8 @@ import com.gabrieltiziano.event_driven_basket.order_service.entity.Order;
 import com.gabrieltiziano.event_driven_basket.order_service.entity.enums.OrderEvent;
 import com.gabrieltiziano.event_driven_basket.order_service.entity.enums.OrderStatus;
 import com.gabrieltiziano.event_driven_basket.order_service.entity.enums.PaymentMethod;
+import com.gabrieltiziano.event_driven_basket.order_service.exception.InvalidOrderTransitionException;
+import com.gabrieltiziano.event_driven_basket.order_service.exception.OrderNotFoundException;
 import com.gabrieltiziano.event_driven_basket.order_service.message.NotificationMessage;
 import com.gabrieltiziano.event_driven_basket.order_service.repository.OrderRepository;
 import org.junit.jupiter.api.Test;
@@ -139,8 +141,8 @@ class OrderServiceTest {
         when(orderRepository.findById("non-existent")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> orderService.shipOrder("non-existent"))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("Order not found");
+                .isInstanceOf(OrderNotFoundException.class)
+                .hasMessageContaining("Pedido não encontrado");
 
         verify(orderRepository, never()).save(any());
     }
@@ -151,10 +153,10 @@ class OrderServiceTest {
 
         when(orderRepository.findById("order-1")).thenReturn(Optional.of(order));
         when(orderStateService.processEvent(OrderStatus.CREATED, OrderEvent.DELIVER))
-                .thenThrow(new IllegalStateException("Invalid transition"));
+                .thenThrow(new InvalidOrderTransitionException("Invalid transition"));
 
         assertThatThrownBy(() -> orderService.deliverOrder("order-1"))
-                .isInstanceOf(IllegalStateException.class);
+                .isInstanceOf(InvalidOrderTransitionException.class);
 
         verify(orderRepository, never()).save(any());
     }

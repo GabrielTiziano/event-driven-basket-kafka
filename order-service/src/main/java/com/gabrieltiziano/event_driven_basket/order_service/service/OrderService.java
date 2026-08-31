@@ -6,6 +6,7 @@ import com.gabrieltiziano.event_driven_basket.order_service.entity.Order;
 import com.gabrieltiziano.event_driven_basket.order_service.entity.enums.OrderEvent;
 import com.gabrieltiziano.event_driven_basket.order_service.entity.enums.OrderStatus;
 import com.gabrieltiziano.event_driven_basket.order_service.entity.enums.PaymentMethod;
+import com.gabrieltiziano.event_driven_basket.order_service.exception.OrderNotFoundException;
 import com.gabrieltiziano.event_driven_basket.order_service.mapper.OrderMapper;
 import com.gabrieltiziano.event_driven_basket.order_service.message.NotificationMessage;
 import com.gabrieltiziano.event_driven_basket.order_service.repository.OrderRepository;
@@ -88,10 +89,9 @@ public class OrderService {
         return OrderMapper.toResponse(saved);
     }
 
-    //TODO: criar exception personalizada
     private Order getOrder(String id) {
         return orderRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Order not found with id: " + id));
+                .orElseThrow(() -> new OrderNotFoundException(id));
     }
 
     private void notify(Order order, OrderEvent event) {
